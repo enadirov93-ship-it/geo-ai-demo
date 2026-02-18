@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>GeoAI — AI-TANYM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+body {
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  color:#033b5c;
+  background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_blank_without_borders.svg/1280px-World_map_blank_without_borders.svg.png') no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+}
+
+/* Полупрозрачная подложка, чтобы текст был читаемым */
+body::before{
+  content:"";
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background: rgba(249,249,249,0.85);
+  z-index:0;
+}
+
+.wrapper{
+  position: relative;
+  z-index:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:40px 20px;
+  gap:30px;
+}
+
+/* Блок проекта */
+.project-info{
+  width:90%;
+  max-width:900px;
+  padding:50px 40px;
+  border-radius:25px;
+  background: linear-gradient(135deg, #ffffff, #e0f7ff);
+  box-shadow: 0 30px 70px rgba(0, 150, 255, 0.3);
+  text-align:center;
+  transition:0.3s;
+}
+
+.project-info:hover{
+  box-shadow: 0 35px 80px rgba(0, 150, 255, 0.4);
+}
+
+.project-info h1{
+  font-size:46px;
+  margin-bottom:25px;
+  background:linear-gradient(90deg,#0099ff,#00cfff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow: 1px 1px 8px rgba(0, 150, 255,0.2);
+}
+
+.project-info p{
+  font-size:20px;
+  line-height:1.8;
+  color:#033b5c;
+  margin-bottom:30px;
+}
+
+/* Автор и школа */
+.project-extra{
+  display:flex;
+  flex-direction: column;
+  gap:12px;
+  margin-top:15px;
+}
+
+.project-extra .author,
+.project-extra .school{
+  padding:18px;
+  border-radius:18px;
+  background: #e0f7ff;
+  box-shadow: 0 12px 25px rgba(0,150,255,0.2);
+  font-weight:600;
+  font-size:17px;
+  color:#005f99;
+}
+
+.project-extra .author{
+  background: #cceeff;
+}
+
+.project-extra .school{
+  background: #99ddff;
+}
+
+/* Платформа - 10 пунктов */
+.platform-points{
+  width:90%;
+  max-width:900px;
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap:15px;
+}
+
+.point-card{
+  padding:22px;
+  border-radius:22px;
+  background: #ffffff;
+  box-shadow:0 12px 30px rgba(0,150,255,0.15);
+  cursor:pointer;
+  transition:0.3s;
+  text-align:left;
+}
+
+.point-card:hover{
+  transform:scale(1.04);
+  box-shadow:0 18px 40px rgba(0,150,255,0.25);
+}
+
+.point-card h3{
+  margin:0 0 10px 0;
+  font-size:18px;
+  color:#008cff;
+}
+
+/* Подсветка активного пункта */
+.point-card.active {
+  border: 2px solid #00bfff;
+  box-shadow: 0 20px 50px rgba(0,150,255,0.35);
+  transform: scale(1.05);
+}
+
+/* AI блок */
+.ai-block{
+  width:90%;
+  max-width:700px;
+  padding:35px;
+  border-radius:25px;
+  text-align:center;
+  background:rgba(255,255,255,0.98);
+  backdrop-filter:blur(15px);
+  box-shadow:0 25px 70px rgba(0,150,255,0.2);
+  transition:0.3s;
+}
+
+.ai-block:hover{
+  box-shadow:0 30px 85px rgba(0,150,255,0.25);
+}
+
+.ai-block input, .ai-block select{
+  width:100%;
+  padding:15px;
+  border-radius:12px;
+  border:1px solid #ccefff;
+  font-size:16px;
+  margin-bottom:15px;
+  outline:none;
+  background:white;
+  color:#033b5c;
+}
+
+.ai-block button{
+  width:100%;
+  padding:15px;
+  border-radius:12px;
+  border:none;
+  font-size:16px;
+  cursor:pointer;
+  background:linear-gradient(90deg,#00bfff,#008cff);
+  color:white;
+  transition:0.3s;
+  box-shadow:0 12px 30px rgba(0,150,255,0.4);
+}
+
+.ai-block button:hover{
+  transform:scale(1.05);
+  box-shadow:0 18px 45px rgba(0,150,255,0.6);
+}
+
+#response{
+  margin-top:20px;
+  padding:18px;
+  border-radius:14px;
+  background:#e6faff;
+  min-height:60px;
+  text-align:left;
+  line-height:1.6;
+  font-size:16px;
+  opacity:0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+#response.show {
+  opacity:1;
+}
+
+/* AI-TANYM блок */
+.ai-tanym{
+  width:90%;
+  max-width:700px;
+  padding:35px;
+  border-radius:25px;
+  text-align:center;
+  background:linear-gradient(135deg,#bdeaff,#99ddff);
+  box-shadow:0 25px 70px rgba(0,150,255,0.25);
+  transition:0.3s;
+}
+
+.ai-tanym:hover{
+  box-shadow:0 30px 85px rgba(0,150,255,0.35);
+}
+
+.ai-tanym h2{
+  font-size:36px;
+  letter-spacing:3px;
+  background:linear-gradient(90deg,#00aaff,#008cff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow: 1px 1px 8px rgba(0,150,255,0.2);
+}
+
+.ai-tanym p{
+  font-size:18px;
+  line-height:1.6;
+  color:#033b5c;
+  font-weight:600;
+}
+
+footer{
+  margin-top:20px;
+  font-size:12px;
+  opacity:0.6;
+}
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- Блок проекта -->
+  <div class="project-info">
+    <h1>AI-TANYM</h1>
+    <p>
+      Бұл платформа география пәнін оқытуда оқушылардың функционалдық сауаттылығын дамытуға бағытталған цифрлық оқу-әдістемелік ресурс болып табылады. 
+      Жоба Қазақстан Республикасының жалпы орта білім беру бағдарламасына сәйкес әзірленген. 
+      Платформада география пәні бойынша құзыреттілікке негізделген, өмірмен байланысты тапсырмалар жүйесі ұсынылады. 
+      Білім алушылар мен ұстаздарға арналған қосымша көмекті құрал ретінде қолданылады.
+    </p>
+
+    <div class="project-extra">
+      <div class="author">
+        <strong>Автор:</strong> Куаныш Ташенов
+      </div>
+      <div class="school">
+        <strong>Мектеп-лицей:</strong> Д.Қонаев атындағы BINOM SCHOOL 
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 пунктов платформы -->
+  <div class="platform-points">
+    <div class="point-card" onclick="askPoint(1)"> 
+      <h3>01. Функционалдық сауаттылықты дамыту</h3>
+      <p>Оқушылардың логикалық ойлау және практикалық дағдыларын жетілдіру.</p>
+    </div>
+    <div class="point-card" onclick="askPoint(2)"> 
+      <h3>02. PISA форматындағы тапсырмалар</h3>
+      <p>Халықаралық зерттеулерге сәйкес тапсырмалар арқылы біліктілікті бағалау.</p>
+    </div>
+    <div class="point-card" onclick="askPoint(3)"> 
+      <h3>03. Картамен жұмыс дағдылары</h3>
+      <p>Географиялық ақпаратты визуалды түрде пайдалану қабілеті.</p>
+    </div>
+    <div class="point-card" onclick="askPoint(4)"> 
+      <h3>04. Диаграмма және статистикалық деректерді талдау</h3>
+      <p>Мәліметтерді өңдеу және талдау дағдылары.</p>
+    </div>
+    <div class="point-card" onclick="askPoint(5)"> 
+      <h3>05. Қазақстан географиясына басымдық</h3>
+      <p>Ел картасы мен аймақтарын терең зерттеу.</p>
+    </div>
+    <div class="point-card" onclick="askPoint(6)"> 
+      <h3>06. Құзыреттілікке негізделген тапсырмалар</h3>
+      <p>Өмірмен байланыстырылған тапсырмалар арқылы білімді қолдану.</p>
+    </div>
+    <div class="point-card" onclick="askPoint(7)"> 
+      <h3>07. Оқу мақсаттарына сәйкестік</h3>
+      <p>Жүйелі бағдарламаға сәйкес тапсырмалар.</p>
+    </div>
+    <div class="point-card" onclick="askPoint(8)"> 
+      <h3>08. Бағалау және дескрипторлар жүйесі</h3>
+      <p>Оқу жетістіктерін нақты бағалау.</p>
+    </div>
+    <div class="point-card" onclick="askPoint(9)"> 
+      <h3>09. Мұғалімнің әдістемелік жұмысын жеңілдету</h3>
+      <p>Жұмысты автоматтандыру және қосымша материалдар.</p>
+    </div>
+    <div class="point-card" onclick="askPoint(10)"> 
+      <h3>10. Цифрлық және жасанды интеллект мүмкіндіктері</h3>
+      <p>AI арқылы тапсырмаларды жылдам іздеу және талдау.</p>
+    </div>
+  </div>
+
+  <!-- AI блок -->
+  <div class="ai-block">
+    <input type="text" id="question" placeholder="Сұрақты енгізіңіз..." />
+    <select id="lang">
+      <option value="kk">Қазақша</option>
+      <option value="ru">Русский</option>
+      <option value="en">English</option>
+    </select>
+    <button onclick="ask()">Сұрау жіберу</button>
+    <div id="response"></div>
+  </div>
+
+  <!-- AI-TANYM блок -->
+  <div class="ai-tanym">
+    <h2>AI-TANYM</h2>
+    <p>Next Generation Geographic Intelligence Platform</p>
+  </div>
+
+  <footer>
+    Powered by Artificial Intelligence
+  </footer>
+
+</div>
+
+<script>
+async function ask() {
+  const question = document.getElementById("question").value;
+  const lang = document.getElementById("lang").value;
+  const responseDiv = document.getElementById("response");
+
+  if(!question){
+    responseDiv.innerHTML = "⚠️ Сұрақ енгізіңіз";
+    responseDiv.classList.add('show');
+    return;
+  }
+
+  responseDiv.innerHTML = "⏳ Жауап ізделуде...";
+  responseDiv.classList.add('show');
+
+  try {
+    const res = await fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, lang })
+    });
+
+    const data = await res.json();
+    responseDiv.innerHTML = data.answer || "❌ Жауап табылмады";
+    responseDiv.classList.add('show');
+
+  } catch (error) {
+    responseDiv.innerHTML = "❌ Сервер қол жетімсіз";
+    responseDiv.classList.add('show');
+    console.error(error);
+  }
+}
+
+// Функция для 10 пунктов с подсветкой
+function askPoint(num){
+  const pointsText = {
+    1:"Функционалдық сауаттылықты дамыту: Оқушылардың логикалық ойлау және практикалық дағдыларын жетілдіру.",
+    2:"PISA форматындағы тапсырмалар: Халықаралық зерттеулерге сәйкес тапсырмалар арқылы біліктілікті бағалау.",
+    3:"Картамен жұмыс дағдылары: Географиялық ақпаратты визуалды түрде пайдалану қабілеті.",
+    4:"Диаграмма және статистикалық деректерді талдау: Мәліметтерді өңдеу және талдау дағдылары.",
+    5:"Қазақстан географиясына басымдық: Ел картасы мен аймақтарын терең зерттеу.",
+    6:"Құзыреттілікке негізделген тапсырмалар: Өмірмен байланыстырылған тапсырмалар арқылы білімді қолдану.",
+    7:"Оқу мақсаттарына сәйкестік: Жүйелі бағдарламаға сәйкес тапсырмалар.",
+    8:"Бағалау және дескрипторлар жүйесі: Оқу жетістіктерін нақты бағалау.",
+    9:"Мұғалімнің әдістемелік жұмысын жеңілдету: Жұмысты автоматтандыру және қосымша материалдар.",
+    10:"Цифрлық және жасанды интеллект мүмкіндіктері: AI арқылы тапсырмаларды жылдам іздеу және талдау."
+  };
+
+  document.querySelectorAll('.point-card').forEach((el,i)=>{
+    if(i+1===num){
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  document.getElementById("question").value = pointsText[num];
+  ask(); // сразу отправляем на сервер
+}
+</script>
+
+</body>
+</html>
