@@ -52,10 +52,10 @@ async function ask(){
   responseDiv.textContent = "⏳ Жауап дайындалып жатыр...";
 
   try{
-    const res = await fetch("/api/ask", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ question, lang })
+   const res = await fetch("/api/ask", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ question, lang })
     });
 
     const data = await res.json();
