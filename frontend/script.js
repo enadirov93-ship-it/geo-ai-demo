@@ -31,6 +31,12 @@ function askPoint(n){
   ask();
 }
 
+function quickAsk(text){
+  document.getElementById("question").value = text;
+  scrollToSearch();
+  ask();
+}
+ 
 async function ask(){
   const question = (document.getElementById("question").value || "").trim();
   const lang = document.getElementById("lang").value;

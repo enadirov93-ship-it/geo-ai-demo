@@ -67,27 +67,43 @@
     </section>
 
     <!-- ✅ AI SEARCH (поисковик) -->
-    <section id="ai-search" class="card search">
-      <div class="search-head">
-        <div>
-          <h3>🔎 AI-іздеу</h3>
-          <div class="sub">География бойынша сұрақ қой — AI жауап береді (kk / ru / en)</div>
-        </div>
-
-        <select id="lang" class="select">
-          <option value="kk" selected>Қазақша</option>
-          <option value="ru">Русский</option>
-          <option value="en">English</option>
-        </select>
+    <section id="ai-search" class="card search search-hero">
+  <div class="search-hero__top">
+    <div>
+      <div class="badge">AI • Geography • PISA</div>
+      <h3 class="search-hero__title">AI-іздеу</h3>
+      <div class="search-hero__desc">
+        География бойынша сұрақ қой — AI түсінікті жауап береді. Қаласаң PISA тапсырма құрастырады және шешімін қадамдап түсіндіреді.
       </div>
+    </div>
 
-      <div class="search-row">
-        <input id="question" class="input" placeholder="Мысалы: Қазақстан жер көлемі қанша? / PISA тапсырма құрастыр..." />
-        <button class="btn" onclick="ask()">Жіберу</button>
-      </div>
+    <div class="search-hero__controls">
+      <select id="lang" class="select select-big">
+        <option value="kk" selected>Қазақша</option>
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+  </div>
 
-      <div id="response" class="response"></div>
-    </section>
+  <div class="search-row search-row-big">
+    <div class="input-wrap">
+      <span class="input-icon">🔎</span>
+      <input id="question" class="input input-big" placeholder="Мысалы: Қазақстанның жер көлемі қанша? • Климаттық белдеулерді түсіндір • PISA тапсырма құрастыр" />
+    </div>
+    <button class="btn btn-big" onclick="ask()">Жіберу</button>
+  </div>
+
+  <div class="chips">
+    <button class="chip" onclick="quickAsk('Қазақстанның жер көлемі қанша?')">🇰🇿 Жер көлемі</button>
+    <button class="chip" onclick="quickAsk('Алматының климаты қандай және неге?')">🌦️ Климат</button>
+    <button class="chip" onclick="quickAsk('PISA форматында картаға байланысты 1 тапсырма құрастыр')">🧩 PISA тапсырма</button>
+    <button class="chip" onclick="quickAsk('Диаграмманы талдаудың 5 қадамын түсіндір')">📊 Диаграмма</button>
+  </div>
+
+  <div id="response" class="response"></div>
+</section>
+
 
     <footer class="footer">
       © 2026 AI-TANYM | Барлық құқықтар қорғалған | Географияны білу — әлемді тану

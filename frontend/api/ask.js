@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   }
 
   const { question, lang } = req.body || {};
-  const language = ["kk","ru","en"].includes(lang) ? lang : "kk";
+  const language = ["kk", "ru", "en"].includes(lang) ? lang : "kk";
 
   if (!question || typeof question !== "string") {
     return res.status(400).json({ error: "Question is required" });
@@ -13,17 +13,21 @@ export default async function handler(req, res) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({
-      error: "OPENAI_API_KEY not set",
-      hint: "Vercel → Project Settings → Environment Variables → OPENAI_API_KEY қосып, Redeploy жаса."
+      error: "OPENAI_API_KEY жоқ",
+      hint: "Vercel → Project → Settings → Environment Variables → OPENAI_API_KEY қосып, Redeploy жаса."
     });
   }
 
-  const systemPrompt = `
-Сен AI-TANYM география көмекшісісің.
-Негізгі бағытың: география, Қазақстан географиясы, PISA форматындағы тапсырмалар, карта/диаграмма/статистика талдау.
-Жауап: түсінікті, қысқа + қажет болса қадамдап.
+ const systemPrompt = `
+Сен AI-TANYM география көмекшісісің (мұғалімдер мен оқушыларға).
+Жауап құрылымы:
+1) Қысқа жауап
+2) Түсіндіру (қадамдап)
+3) Егер тапсырма болса: дескриптор/бағалау критерийі
+4) Соңында 1 қысқа тексеру сұрағы
 Тіл: ${language}.
-  `.trim();
+`.trim();
+
 
   try {
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -38,26 +42,24 @@ export default async function handler(req, res) {
           { role: "system", content: systemPrompt },
           { role: "user", content: question }
         ],
-        max_tokens: 700,
-      }),
+        max_tokens: 700
+      })
     });
 
     const data = await r.json();
 
     if (!r.ok) {
-      // Частая ошибка: quota 429
       const msg = data?.error?.message || "OpenAI API error";
       return res.status(r.status).json({
         error: msg,
         hint: r.status === 429
-          ? "OpenAI лимит/квота таусылған болуы мүмкін (429). Billing/usage тексер."
-          : "OpenAI error. Модель атауын немесе кілтті тексер."
+          ? "Лимит/квота таусылған (429). OpenAI Usage/Billing тексер."
+          : "OpenAI error. Кілт/модель дұрыс па тексер."
       });
     }
 
     const answer = data?.choices?.[0]?.message?.content?.trim() || "Жауап табылмады";
     return res.status(200).json({ answer });
-
   } catch (e) {
     return res.status(500).json({ error: "Server error", hint: String(e?.message || e) });
   }
