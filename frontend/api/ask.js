@@ -14,12 +14,13 @@ module.exports = async (req, res) => {
   if (!apiKey) {
     return res.status(500).json({
       error: "OPENAI_API_KEY жоқ",
-      hint: "Vercel → Project → Settings → Environment Variables → OPENAI_API_KEY қосып, Production/Preview/Development таңда да Redeploy жаса."
+      hint: "Vercel → Project → Settings → Environment Variables → OPENAI_API_KEY қосып, Redeploy жаса."
     });
   }
 
-  // Auto-detect mode
+  // Авто-режим (чат/тест/тапсырма)
   const q = question.toLowerCase();
+
   const isTest =
     q.includes("тест") || q.includes("test") ||
     q.includes("multiple choice") || q.includes("вариант") ||
@@ -41,7 +42,6 @@ module.exports = async (req, res) => {
 Сен AI-TANYM — география пәні бойынша AI көмекшісің (оқушы + мұғалім үшін).
 Қазақстан географиясына басымдық бер.
 Егер сұрақ анық емес болса — 1 нақтылау сұрағын қой.
-Ойдан сан/дерек ойлап таппа. Сенімсіз болса "нақты дерек керек" деп белгіле.
 Тіл: ${language}.
 `.trim();
 
@@ -77,7 +77,7 @@ ${baseRules}
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: Bearer ${apiKey},
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
