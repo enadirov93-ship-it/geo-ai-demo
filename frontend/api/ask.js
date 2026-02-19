@@ -5,7 +5,25 @@ export default async function handler(req, res) {
 
   const { question, lang } = req.body || {};
   const language = ["kk", "ru", "en"].includes(lang) ? lang : "kk";
+  
+const q = (question || "").toLowerCase();
 
+const isTest =
+  q.includes("тест") || q.includes("test") ||
+  q.includes("multiple choice") || q.includes("вариант") ||
+  q.includes("10 сұрақ") || q.includes("20 сұрақ") ||
+  q.includes("mcq");
+
+const isTask =
+  q.includes("тапсырма") || q.includes("task") ||
+  q.includes("pisa") || q.includes("есеп") ||
+  q.includes("дескриптор") || q.includes("бағалау") ||
+  q.includes("rubric");
+
+let autoMode = "chat";
+if (isTest) autoMode = "test";
+else if (isTask) autoMode = "task";
+ 
   if (!question || typeof question !== "string") {
     return res.status(400).json({ error: "Question is required" });
   }
@@ -63,4 +81,13 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: "Server error", hint: String(e?.message || e) });
   }
+  
+}
+export default function handler(req, res) {
+  const hasKey = !!process.env.OPENAI_API_KEY;
+  res.status(200).json({
+    ok: true,
+    has_OPENAI_API_KEY: hasKey,
+    node_env: process.env.NODE_ENV || null
+  });
 }

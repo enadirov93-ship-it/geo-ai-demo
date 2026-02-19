@@ -25,10 +25,13 @@ function openPolicy(e){
 }
 
 function askPoint(n){
-  const q = pointsText[n] || "Платформа басымдығы туралы түсіндір.";
-  document.getElementById("question").value = q;
-  scrollToSearch();
-  ask();
+  // 1) Түсіндірме бөліміне апару
+  const target = document.getElementById(`detail-${n}`);
+  if(target){
+    target.scrollIntoView({ behavior:"smooth", block:"start" });
+    target.classList.add("flash");
+    setTimeout(()=>target.classList.remove("flash"), 900);
+  }
 }
 
 function quickAsk(text){
