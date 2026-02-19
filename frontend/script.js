@@ -1,28 +1,5 @@
-const chat = document.getElementById("chat");
-const chatBody = document.getElementById("chatBody");
-const chatNote = document.getElementById("chatNote");
-
-function toggleChat(){
-  chat.classList.toggle("show");
-}
-function openChat(){
-  chat.classList.add("show");
-  document.getElementById("question")?.focus();
-}
-
-function addMsg(text, who="bot"){
-  const div = document.createElement("div");
-  div.className = `msg ${who}`;
-  div.innerHTML = text;
-  chatBody.appendChild(div);
-  chatBody.scrollTop = chatBody.scrollHeight;
-}
-
-function openPolicy(e){
-  e.preventDefault();
-  openChat();
-  addMsg("Құпиялық саясаты: Бұл демо-нұсқа. API кілттері қауіпсіз серверде сақталады. Қолданушы деректері жарияланбайды.", "bot");
-}
+const responseDiv = document.getElementById("response");
+const stickyHint = document.getElementById("stickyHint");
 
 const pointsText = {
   1:"Функционалдық сауаттылықты дамыту: Оқушылардың логикалық ойлау және практикалық дағдыларын жетілдіру.",
@@ -37,27 +14,33 @@ const pointsText = {
   10:"Цифрлық және жасанды интеллект мүмкіндіктері: AI арқылы тапсырмаларды жылдам іздеу және талдау."
 };
 
+function scrollToSearch(){
+  document.getElementById("ai-search").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function openPolicy(e){
+  e.preventDefault();
+  responseDiv.textContent = "Құпиялық саясаты: Бұл демо-нұсқа. Құпия кілттер серверде сақталады, қолданушы мәліметтері жарияланбайды.";
+  scrollToSearch();
+}
+
 function askPoint(n){
-  openChat();
   const q = pointsText[n] || "Платформа басымдығы туралы түсіндір.";
   document.getElementById("question").value = q;
+  scrollToSearch();
   ask();
 }
 
 async function ask(){
-  const qEl = document.getElementById("question");
+  const question = (document.getElementById("question").value || "").trim();
   const lang = document.getElementById("lang").value;
-  const question = (qEl.value || "").trim();
 
-  chatNote.textContent = "";
   if(!question){
-    chatNote.textContent = "⚠️ Сұрақ енгізіңіз.";
+    responseDiv.textContent = "⚠️ Сұрақ енгізіңіз.";
     return;
   }
 
-  addMsg(question, "user");
-  qEl.value = "";
-  addMsg("⏳ Жауап дайындалып жатыр...", "bot");
+  responseDiv.textContent = "⏳ Жауап дайындалып жатыр...";
 
   try{
     const res = await fetch("/api/ask", {
@@ -68,19 +51,24 @@ async function ask(){
 
     const data = await res.json();
 
-    // Удаляем "⏳" сообщение
-    chatBody.removeChild(chatBody.lastElementChild);
-
     if(!res.ok){
-      // Покажем ошибку красиво
-      addMsg(`❌ ${data?.error || "Қате шықты"}`, "bot");
-      if(data?.hint) chatNote.textContent = data.hint;
+      responseDiv.textContent = `❌ ${data?.error || "Қате шықты"}\n${data?.hint ? "ℹ️ " + data.hint : ""}`;
       return;
     }
 
-    addMsg(data.answer || "Жауап табылмады", "bot");
+    responseDiv.textContent = data.answer || "Жауап табылмады";
   }catch(e){
-    chatBody.removeChild(chatBody.lastElementChild);
-    addMsg("❌ Сервер қол жетімсіз. Кейінірек қайталап көріңіз.", "bot");
+    responseDiv.textContent = "❌ Сервер қол жетімсіз (API жұмыс істемей тұр).";
   }
 }
+
+/* ✅ Sticky hint appears when user is not near search section */
+function handleHint(){
+  const el = document.getElementById("ai-search");
+  const rect = el.getBoundingClientRect();
+  const visible = rect.top < window.innerHeight && rect.bottom > 0;
+  if(visible) stickyHint.classList.remove("show");
+  else stickyHint.classList.add("show");
+}
+window.addEventListener("scroll", handleHint);
+handleHint();
