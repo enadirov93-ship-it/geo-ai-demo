@@ -425,3 +425,95 @@ body{
   font-weight:800;
 }
 .mini-ai:hover{ transform: translateY(-1px); }
+/* ===== AI CHAT upgrade (only inside #ai-search) ===== */
+
+#ai-search .ai-chat{
+  margin-top:16px;
+  border-radius: 22px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.55);
+  box-shadow: var(--shadow2);
+  overflow:hidden;
+}
+
+#ai-search .ai-chat__body{
+  padding: 14px 14px 10px;
+  height: 360px;                 /* можно менять */
+  overflow:auto;
+  background: linear-gradient(180deg, rgba(239,248,255,.85), rgba(255,255,255,.55));
+  scroll-behavior:smooth;
+}
+
+@media(max-width:560px){
+  #ai-search .ai-chat__body{ height: 420px; }
+}
+
+#ai-search .ai-msg{
+  display:flex;
+  margin: 10px 0;
+}
+
+#ai-search .ai-msg.user{ justify-content:flex-end; }
+#ai-search .ai-msg.ai{ justify-content:flex-start; }
+
+#ai-search .ai-bubble{
+  max-width: min(78%, 760px);
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid #d6ebfb;
+  background: #ffffffd9;
+  color:#1b4761;
+  line-height:1.65;
+  white-space:pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 10px 24px rgba(35,90,130,.08);
+}
+
+#ai-search .ai-msg.user .ai-bubble{
+  background: linear-gradient(90deg, rgba(42,139,255,.18), rgba(34,199,255,.18));
+  border-color: rgba(42,139,255,.22);
+}
+
+#ai-search .ai-chat__bar{
+  display:flex;
+  gap:12px;
+  padding: 12px;
+  border-top: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.75);
+  align-items:flex-end;
+}
+
+#ai-search .ai-input-wrap{
+  flex:1;
+  position:relative;
+}
+
+#ai-search .ai-input{
+  width:100%;
+  resize:none;
+  min-height: 52px;
+  max-height: 180px;
+  padding: 14px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--stroke);
+  background:#fbfdff;
+  outline:none;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+#ai-search .ai-input:focus{
+  border-color: rgba(42,139,255,.35);
+  box-shadow: 0 0 0 5px rgba(42,139,255,.10);
+}
+
+#ai-search .ai-send{
+  white-space:nowrap;
+  min-width: 110px;
+}
+
+/* маленький “typing” вид */
+#ai-search .ai-typing{
+  opacity:.8;
+  font-style: italic;
+}
