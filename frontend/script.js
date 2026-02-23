@@ -12,10 +12,10 @@ const btnCopyLast = document.getElementById("btnCopyLast");
 const btnDownload = document.getElementById("btnDownload");
 
 // ====== Storage keys ======
-const LS_KEY = "ai_tanym_chat_v1";
-const LS_MODE = "ai_tanym_mode_v1";
+const LS_KEY = "ai_tanym_chat_v2";
+const LS_MODE = "ai_tanym_mode_v2";
 
-// ====== Modes ======
+// ====== Modes (front-end instruction prefixes) ======
 const MODES = {
   chat:   { label:"💬 Жалпы", prefix:"" },
   explain:{ label:"📘 Түсіндіру", prefix:"[MODE:EXPLAIN]\n" },
@@ -25,23 +25,9 @@ const MODES = {
   lesson: { label:"🧑‍🏫 Сабақ жоспары", prefix:"[MODE:LESSON]\n" },
 };
 
-let currentMode = loadMode() || "chat";
+let currentMode = localStorage.getItem(LS_MODE) || "chat";
 
-// ====== Platform points ======
-const pointsText = {
-  1:"Функционалдық сауаттылықты дамыту: Оқушылардың логикалық ойлау және практикалық дағдыларын жетілдіру.",
-  2:"PISA форматындағы тапсырмалар: Халықаралық зерттеулерге сәйкес тапсырмалар арқылы біліктілікті бағалау.",
-  3:"Картамен жұмыс дағдылары: Географиялық ақпаратты визуалды түрде пайдалану қабілеті.",
-  4:"Диаграмма және статистикалық деректерді талдау: Мәліметтерді өңдеу және талдау дағдылары.",
-  5:"Қазақстан географиясына басымдық: Ел картасы мен аймақтарын терең зерттеу.",
-  6:"Құзыреттілікке негізделген тапсырмалар: Өмірмен байланыстырылған тапсырмалар арқылы білімді қолдану.",
-  7:"Оқу мақсаттарына сәйкестік: Жүйелі бағдарламаға сәйкес тапсырмалар.",
-  8:"Бағалау және дескрипторлар жүйесі: Оқу жетістіктерін нақты бағалау.",
-  9:"Мұғалімнің әдістемелік жұмысын жеңілдету: Жұмысты автоматтандыру және қосымша материалдар.",
-  10:"Цифрлық және жасанды интеллект мүмкіндіктері: AI арқылы тапсырмаларды жылдам іздеу және талдау."
-};
-
-// ====== UI helpers ======
+// ====== Helpers ======
 function scrollToSearch(){
   document.getElementById("ai-search").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -49,29 +35,20 @@ function scrollToSearch(){
 function autoGrow(el){
   if (!el) return;
   el.style.height = "auto";
-  el.style.height = Math.min(el.scrollHeight, 200) + "px";
+  el.style.height = Math.min(el.scrollHeight, 220) + "px";
 }
 
 function escapeHtml(s){
   return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));
 }
 
-// lightweight markdown: **bold**, `code`, ```pre```, списки
+// lightweight markdown: **bold**, `code`, ```pre```, - списки
 function renderMarkdownLite(text){
   const safe = escapeHtml(text);
 
-  // code blocks ```
-  let html = safe.replace(/```([\s\S]*?)```/g, (_m, p1) => {
-    return `<pre><code>${p1}</code></pre>`;
-  });
-
-  // inline code
+  let html = safe.replace(/```([\s\S]*?)```/g, (_m, p1) => `<pre><code>${p1}</code></pre>`);
   html = html.replace(/`([^`]+)`/g, `<code>$1</code>`);
-
-  // bold
   html = html.replace(/\*\*([^*]+)\*\*/g, `<strong>$1</strong>`);
-
-  // headings (simple)
   html = html.replace(/^\s*####\s*(.+)$/gm, `<h4>$1</h4>`);
 
   // unordered lists
@@ -83,7 +60,9 @@ function renderMarkdownLite(text){
   html = html
     .split(/\n{2,}/)
     .map(block => {
-      if (block.trim().startsWith("<pre") || block.trim().startsWith("<ul") || block.trim().startsWith("<h4")) return block;
+      const t = block.trim();
+      if (!t) return "";
+      if (t.startsWith("<pre") || t.startsWith("<ul") || t.startsWith("<h4")) return t;
       return `<p>${block.replace(/\n/g, "<br/>")}</p>`;
     })
     .join("");
@@ -92,15 +71,12 @@ function renderMarkdownLite(text){
 }
 
 function appendMsg(role, text){
-  if (!responseDiv) return;
-
   const wrap = document.createElement("div");
   wrap.className = `ai-msg ${role}`;
 
   const bubble = document.createElement("div");
   bubble.className = "ai-bubble";
 
-  // AI messages render markdown-lite, user messages as plain
   if (role === "ai") bubble.innerHTML = renderMarkdownLite(text);
   else bubble.textContent = text;
 
@@ -112,7 +88,6 @@ function appendMsg(role, text){
 }
 
 function setTyping(on){
-  if (!responseDiv) return;
   const id = "aiTypingBubble";
   let node = document.getElementById(id);
 
@@ -129,15 +104,28 @@ function setTyping(on){
   }
 }
 
-function copyText(text){
-  return navigator.clipboard?.writeText(text);
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function getLastAiMessage(){
   const nodes = Array.from(responseDiv.querySelectorAll(".ai-msg.ai .ai-bubble"));
   if (!nodes.length) return "";
-  const last = nodes[nodes.length - 1];
-  return last.innerText || "";
+  return nodes[nodes.length - 1].innerText || "";
+}
+
+function exportChatAsText(){
+  const msgs = Array.from(responseDiv.querySelectorAll(".ai-msg"));
+  return msgs.map(m => {
+    const role = m.classList.contains("user") ? "USER" : "AI";
+    const content = m.querySelector(".ai-bubble")?.innerText || "";
+    return `[${role}] ${content}`;
+  }).join("\n\n");
 }
 
 function downloadChat(){
@@ -146,21 +134,11 @@ function downloadChat(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `AI-TANYM_chat_${new Date().toISOString().slice(0,10)}.txt`;
+  a.download = `AI-TANYM_geography_${new Date().toISOString().slice(0,10)}.txt`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-}
-
-function exportChatAsText(){
-  const msgs = Array.from(responseDiv.querySelectorAll(".ai-msg"));
-  const lines = msgs.map(m => {
-    const role = m.classList.contains("user") ? "USER" : "AI";
-    const content = m.querySelector(".ai-bubble")?.innerText || "";
-    return `[${role}] ${content}`;
-  });
-  return lines.join("\n\n");
 }
 
 // ====== Mode handling ======
@@ -168,7 +146,6 @@ function setMode(mode){
   currentMode = MODES[mode] ? mode : "chat";
   localStorage.setItem(LS_MODE, currentMode);
 
-  // update pill UI
   Array.from(modePills.querySelectorAll(".mode-pill")).forEach(btn => {
     btn.classList.toggle("active", btn.dataset.mode === currentMode);
   });
@@ -176,85 +153,103 @@ function setMode(mode){
   modeLabel.textContent = `Режим: ${MODES[currentMode].label}`;
 }
 
-function loadMode(){
-  return localStorage.getItem(LS_MODE);
-}
-
-// ====== Templates ======
+// ====== Templates (strong geography teacher focus) ======
 const TEMPLATES = {
-  pisa_map: `PISA форматында картаға байланысты 1 тапсырма құрастыр:
+  teacher_request:
+`МҰҒАЛІМГЕ СҰРАНЫС (толтыр):
+- Сынып:
+- Тақырып:
+- Формат: (Түсіндіру / Тапсырма / Тест / ҚБ / ЖБ / Сабақ жоспары)
+- Оқу мақсаты:
+- Құрал: (карта / кесте / диаграмма / мәтін)
+- Деңгей: (жеңіл/орта/күрделі)
+- Уақыт: (10/15/45 мин)
+Сосын дайын материалды бер.`,
+
+  pisa_map:
+`PISA форматында КАРТАға байланысты 1 тапсырма құрастыр:
 - Контекст: нақты өмір
-- Мәтін + шағын карта-сипаттама (оқушыға берілетін дерек)
+- Оқушыға берілетін дерек: шағын мәтін + карта сипаттамасы (шартты белгілер/масштаб/бағыт)
 - 3 сұрақ: (1) түсіну, (2) қолдану, (3) талдау
 - Жауап/шешім қадамдап
-- Бағалау критерийі және 3-5 дескриптор`,
+- Бағалау критерийі және 3–5 дескриптор`,
 
-  diagram: `Диаграмма/кестені талдауға арналған түсіндіру жаса:
+  diagram:
+`Диаграмма/кестені талдауға арналған түсіндіру жаса:
 - 5 қадамдық алгоритм
-- 1 мысал (ойдан шығарылған шағын дерекпен)
-- Оқушыға 3 сұрақ және жауап кілті`,
+- 1 қысқа мысал (шағын дерекпен)
+- Оқушыға 3 сұрақ + жауап кілті`,
 
-  rubric: `Осы тақырыпқа бағалау критерийі мен дескриптор жаса:
+  rubric:
+`Осы тақырыпқа бағалау критерийі мен дескриптор жаса:
 - 2 критерий
 - әр критерийге 3 дескриптор
 - деңгейлер: төмен/орта/жоғары`,
 
-  kazakhstan: `Қазақстан туралы фактілерді тексеріп, қысқаша түсіндір:
-- әкімшілік бөлініс (облыс саны + неге бұрын басқаша болды)
-- 3 қала республикалық маңызы бар
-- 1-2 сөйлеммен контекст бер`,
+  coords:
+`Координата бойынша есеп құрастыр да шығар:
+- 2 нүкте координатасы (lat/lon)
+- Қашықтық (км) және азимут (°)
+- Қадамдап түсіндір, соңында қорытынды жауап`,
 
-  coords: `Координата бойынша есеп:
-- Екі нүктенің координатасы берілсін (лат/лон)
-- Қашықтықты және азимутты тап
-- Қадамдап түсіндір, соңында жауапты дөңгелекте`,
-
-  lesson_45: `45 минутқа сабақ жоспары:
-- Сынып: (жазып бер)
-- Тақырып: (жазып бер)
-- Оқу мақсаты: (жазып бер)
+  lesson_45:
+`45 минутқа ГЕОГРАФИЯ сабағының жоспары:
+- Сынып: (жаз)
+- Тақырып: (жаз)
+- Оқу мақсаты: (жаз)
 - Құндылық: 1
 - Сабақ құрылымы: кіріспе/негізгі/қорытынды
 - Әдістер: топтық + жұптық + жеке
 - ҚБ: критерий + дескриптор
-- Саралау: 2 тәсіл`,
+- Саралау: 2 тәсіл
+- Ресурс: карта/атлас/кесте/диаграмма (таңда)`,
 
-  lesson_15: `15 минуттық мини-сабақ:
+  lesson_15:
+`15 минуттық мини-сабақ:
 - 1 мақсат
 - 1 қысқа түсіндіру
 - 1 шағын тапсырма
 - 1 тез тексеру сұрағы + жауап`,
 
-  pisa_data: `PISA форматында дерекке (кесте/мәтін) сүйенетін тапсырма құрастыр:
-- қысқа мәтін + кесте (шағын дерек)
-- 3 сұрақ (әртүрлі деңгей)
-- жауап кілті + дескриптор`,
-
-  map_skill: `Картамен жұмыс дағдысына арналған тапсырма:
-- масштаб/шартты белгілер/бағыт/координата бойынша
-- 2 тапсырма және шешім қадамдап
+  map_skill:
+`Картамен жұмыс дағдысына арналған тапсырмалар:
+- масштаб немесе шартты белгілер немесе бағыт/азимут немесе координата
+- 2 тапсырма + шешімі қадамдап
 - бағалау критерийі + дескриптор`,
 
-  formative: `ҚБ (қалыптастырушы бағалау) тапсырмасы:
+  formative:
+`ҚБ (қалыптастырушы бағалау) тапсырмасы:
 - 10 минутқа
 - 3 қысқа сұрақ
 - жауап кілті
 - дескриптор`,
 
-  summative: `ЖБ (жиынтық бағалау) тапсырмасы:
+  summative:
+`ЖБ (жиынтық бағалау) тапсырмасы:
 - бөлім бойынша 4 тапсырма
 - әр тапсырмаға балл қою
 - жауап кілті + дескриптор`,
 
-  check_solution: `Оқушының шешімін тексер:
-- мен шешімді жапсырамын
-- сен қате қай жерде екенін тап
-- толық жауап бермей, нақты нұсқау/подсказка бер`,
+  task_pisa_data:
+`PISA форматында дерекке сүйенетін тапсырма:
+- қысқа мәтін + кесте/дерек (шағын)
+- 3 сұрақ (әртүрлі деңгей)
+- жауап кілті + дескриптор`,
 
-  vocab: `Осы тақырып бойынша 10 термин:
-- анықтамасы
-- 1 мысал сөйлем
-- 3 терминге қысқа сұрақ-жауап`
+  test_gen:
+`Географиядан тест құрастыр:
+- 10 сұрақ
+- 4 нұсқа (A, B, C, D)
+- соңында "Жауап кілті"
+- 2 сұрақ карта/координата/масштаб туралы болсын`,
+
+  check_solution:
+`Мен оқушының жауабын жіберемін.
+Сен:
+- қателерді тап
+- нақты қай қадамда қате екенін айт
+- толық шешімді бермей, бағыт-бағдар (подсказка) бер
+- соңында 1 қысқа кеңес бер`
 };
 
 function toggleTemplatePanel(){
@@ -266,31 +261,24 @@ function toggleTemplatePanel(){
 function useTemplate(key){
   const t = TEMPLATES[key];
   if (!t) return;
-  if (inputEl){
-    inputEl.value = t;
-    autoGrow(inputEl);
-    inputEl.focus();
-  }
-  toggleTemplatePanel();
+  inputEl.value = t;
+  autoGrow(inputEl);
+  inputEl.focus();
+  templatePanel.classList.remove("show");
+  templatePanel.setAttribute("aria-hidden", "true");
   scrollToSearch();
 }
 
 function copyInput(){
-  const text = inputEl?.value || "";
+  const text = inputEl.value || "";
   if (!text) return;
   copyText(text);
 }
 
-// ====== Policy & points ======
 function openPolicy(e){
   e.preventDefault();
   scrollToSearch();
   appendMsg("ai", "Құпиялық саясаты: Бұл демо-нұсқа. Құпия кілттер серверде сақталады, қолданушы мәліметтері жарияланбайды.");
-}
-
-function askPoint(n){
-  scrollToSearch();
-  appendMsg("ai", pointsText[n] || "Ақпарат табылмады.");
 }
 
 // ====== Chat persistence ======
@@ -312,15 +300,15 @@ function loadChat(){
 function clearChat(){
   responseDiv.innerHTML = "";
   localStorage.removeItem(LS_KEY);
-  // welcome message
   appendMsg("ai",
-`Сәлем! Мен AI-TANYM — мұғалімге арналған көмекші.
-Мына режимдер көмектеседі:
+`Сәлем! Мен AI-TANYM — география мұғаліміне көмекші.
+Не істей аламын:
 - 📘 Түсіндіру: тақырыпты қадамдап
 - 🧩 Тапсырма: PISA/карта/диаграмма
 - 📝 Тест: 4 нұсқа + жауап кілті
 - ✅ Тексеру: оқушы жауабын тексеру
-- 🧑‍🏫 Сабақ жоспары: 15/45 минут`);
+- 🧑‍🏫 Сабақ жоспары: 15/45 минут
+Кеңес: "сынып + тақырып + формат" деп жазсаң, сапасы қатты өседі.`);
 }
 
 function hydrateChat(){
@@ -335,7 +323,7 @@ function hydrateChat(){
 
 // ====== Main ask() ======
 async function ask(){
-  const raw = (inputEl?.value || "").trim();
+  const raw = (inputEl.value || "").trim();
   const lang = langEl?.value || "kk";
 
   if(!raw){
@@ -343,10 +331,20 @@ async function ask(){
     return;
   }
 
-  // prefix adds strong instruction for teacher assistant
-  const prefix = MODES[currentMode]?.prefix || "";
-  const question = `${prefix}${raw}`;
+  // Strong teacher+geography instruction prefix (front-end side)
+  const superPrefix =
+`[ROLE:GEOGRAPHY_TEACHER_ASSISTANT]
+Ереже:
+- Сен география пәні бойынша мұғалім көмекшісің.
+- Егер сұрақ география емес болса — қысқа айт та, географияға жақын бағыт ұсын.
+- Егер дерек жетіспесе — 1 нақтылау сұрағын қой.
+- Қысқа және нақты: анықтама → себеп → мысал → 1 тексеру сұрағы.
+`;
 
+  const modePrefix = MODES[currentMode]?.prefix || "";
+  const questionToSend = `${superPrefix}\n${modePrefix}${raw}`;
+
+  // user message shown without prefixes (clean)
   appendMsg("user", raw);
 
   // clear input
@@ -360,11 +358,10 @@ async function ask(){
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, lang })
+      body: JSON.stringify({ question: questionToSend, lang })
     });
 
     const data = await res.json().catch(() => ({}));
-
     setTyping(false);
 
     if(!res.ok){
@@ -406,7 +403,6 @@ function handleHint(){
   if(visible) stickyHint.classList.remove("show");
   else stickyHint.classList.add("show");
 }
-
 window.addEventListener("scroll", handleHint);
 
 // ====== Mode pills click ======
@@ -423,8 +419,8 @@ btnClear?.addEventListener("click", clearChat);
 btnCopyLast?.addEventListener("click", async () => {
   const text = getLastAiMessage();
   if (!text) return;
-  await copyText(text);
-  appendMsg("ai", "✅ Соңғы жауап көшірілді.");
+  const ok = await copyText(text);
+  appendMsg("ai", ok ? "✅ Соңғы жауап көшірілді." : "⚠️ Көшіру мүмкін болмады.");
 });
 btnDownload?.addEventListener("click", downloadChat);
 
@@ -433,10 +429,9 @@ setMode(currentMode);
 hydrateChat();
 handleHint();
 
-// expose functions for HTML onclick
+// expose for HTML onclick
 window.scrollToSearch = scrollToSearch;
 window.openPolicy = openPolicy;
-window.askPoint = askPoint;
 window.ask = ask;
 window.useTemplate = useTemplate;
 window.toggleTemplatePanel = toggleTemplatePanel;
