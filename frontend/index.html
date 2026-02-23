@@ -65,14 +65,14 @@
       <button class="tile" onclick="askPoint(10)"><div class="num">10</div><div class="txt">Цифрлық және жасанды интеллект мүмкіндіктері</div></button>
     </section>
 
-    <!-- ✅ AI SEARCH / CHAT -->
+    <!-- ✅ AI TEACHER ASSISTANT -->
     <section id="ai-search" class="card search search-hero">
       <div class="search-hero__top">
         <div>
-          <div class="badge">AI • Geography • PISA</div>
-          <h3 class="search-hero__title">AI-іздеу</h3>
+          <div class="badge">AI • Teacher Assistant • Geography</div>
+          <h3 class="search-hero__title">AI көмекші (мұғалімге)</h3>
           <div class="search-hero__desc">
-            География бойынша сұрақ қой — AI түсінікті жауап береді. Қаласаң PISA тапсырма құрастырады және шешімін қадамдап түсіндіреді.
+            Режим таңда: түсіндіру / тапсырма / тест / тексеру / сабақ жоспары. Шаблондарды қолдан да бірден дайын материал ал.
           </div>
         </div>
 
@@ -85,22 +85,43 @@
         </div>
       </div>
 
-      <div class="chips">
-        <button class="chip" onclick="quickAsk('Қазақстанның жер көлемі қанша?')">🇰🇿 Жер көлемі</button>
-        <button class="chip" onclick="quickAsk('Алматының климаты қандай және неге?')">🌦️ Климат</button>
-        <button class="chip" onclick="quickAsk('PISA форматында картаға байланысты 1 тапсырма құрастыр')">🧩 PISA тапсырма</button>
-        <button class="chip" onclick="quickAsk('Диаграмманы талдаудың 5 қадамын түсіндір')">📊 Диаграмма</button>
+      <div class="teacher-bar">
+        <div class="mode-pills" id="modePills">
+          <button class="mode-pill active" data-mode="chat">💬 Жалпы</button>
+          <button class="mode-pill" data-mode="explain">📘 Түсіндіру</button>
+          <button class="mode-pill" data-mode="task">🧩 Тапсырма</button>
+          <button class="mode-pill" data-mode="test">📝 Тест</button>
+          <button class="mode-pill" data-mode="check">✅ Тексеру</button>
+          <button class="mode-pill" data-mode="lesson">🧑‍🏫 Сабақ жоспары</button>
+        </div>
+
+        <div class="teacher-actions">
+          <button class="tbtn ghost" id="btnClear" type="button">🧹 Тазарту</button>
+          <button class="tbtn ghost" id="btnCopyLast" type="button">📋 Соңғысын көшіру</button>
+          <button class="tbtn" id="btnDownload" type="button">⬇️ Жүктеу (.txt)</button>
+        </div>
       </div>
 
-      <!-- ✅ New Chat UI -->
+      <div class="chips">
+        <button class="chip" onclick="useTemplate('pisa_map')">🧭 PISA + карта</button>
+        <button class="chip" onclick="useTemplate('diagram')">📊 Диаграмма талдау</button>
+        <button class="chip" onclick="useTemplate('rubric')">✅ Критерий/дескриптор</button>
+        <button class="chip" onclick="useTemplate('kazakhstan')">🇰🇿 Қазақстан фактілері</button>
+        <button class="chip" onclick="useTemplate('coords')">📍 Координата/қашықтық</button>
+      </div>
+
       <div class="ai-chat">
-        <div id="response" class="ai-chat__body">
-          <div class="ai-msg ai">
-            <div class="ai-bubble">
-              Сәлем! Географиядан сұрақ қой 🙂 Мен түсіндіремін, есеп шығарамын, керек болса PISA тапсырма да құрамын.
-            </div>
+        <div class="ai-chat__head">
+          <div class="ai-chat__status">
+            <span class="dot-live"></span>
+            <span id="modeLabel">Режим: 💬 Жалпы</span>
+          </div>
+          <div class="ai-chat__mini">
+            <span class="mini-tip">Enter — жіберу • Shift+Enter — жаңа жол</span>
           </div>
         </div>
+
+        <div id="response" class="ai-chat__body"></div>
 
         <div class="ai-chat__bar">
           <div class="ai-input-wrap">
@@ -108,15 +129,30 @@
               id="question"
               class="ai-input"
               rows="1"
-              placeholder="Сұрағыңды жаз… (Enter — жіберу, Shift+Enter — жаңа жол)"
+              placeholder="Мысалы: 7-сыныпқа климат тақырыбына 15 минуттық сабақ жоспары керек…"
             ></textarea>
+
+            <div class="ai-tools">
+              <button class="iconbtn" type="button" title="Шаблон" onclick="toggleTemplatePanel()">✨</button>
+              <button class="iconbtn" type="button" title="Көшіру" onclick="copyInput()">📋</button>
+            </div>
           </div>
 
           <button class="btn btn-big ai-send" onclick="ask()">Жіберу</button>
         </div>
 
-        <div class="ai-hint">
-          Enter — жіберу • Shift+Enter — жаңа жол
+        <div class="template-panel" id="templatePanel" aria-hidden="true">
+          <div class="template-title">Мұғалімге дайын шаблондар</div>
+          <div class="template-grid">
+            <button class="template" onclick="useTemplate('lesson_45')">🧑‍🏫 45 мин сабақ жоспары</button>
+            <button class="template" onclick="useTemplate('lesson_15')">⏱️ 15 мин мини-сабақ</button>
+            <button class="template" onclick="useTemplate('pisa_data')">🧩 PISA (дерек/кесте)</button>
+            <button class="template" onclick="useTemplate('map_skill')">🗺️ Карта дағдысы</button>
+            <button class="template" onclick="useTemplate('formative')">🟦 ҚБ тапсырмасы</button>
+            <button class="template" onclick="useTemplate('summative')">🟪 ЖБ тапсырмасы</button>
+            <button class="template" onclick="useTemplate('check_solution')">✅ Оқушы шешімін тексеру</button>
+            <button class="template" onclick="useTemplate('vocab')">📌 Терминдер сөздігі</button>
+          </div>
         </div>
       </div>
     </section>
@@ -128,7 +164,7 @@
 
   <!-- ✅ sticky hint when scrolling -->
   <div class="sticky-hint" id="stickyHint">
-    💬 ИИ көмекшіңіз күтуде — төмендегі AI-іздеуге сұрақ жазыңыз
+    💬 ИИ көмекшіңіз күтуде — төмендегі AI көмекшіге сұрақ жазыңыз
     <button class="hint-btn" onclick="scrollToSearch()">Өту</button>
   </div>
 
