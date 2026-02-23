@@ -23,38 +23,6 @@ module.exports = async (req, res) => {
       });
     }
 
-    // ====== GEO FUNCTIONS (server-side, точные) ======
-    const haversineKm = (lat1, lon1, lat2, lon2) => {
-      const toRad = (x) => (x * Math.PI) / 180;
-      const R = 6371; // km
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) *
-          Math.cos(toRad(lat2)) *
-          Math.sin(dLon / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    };
-
-    const initialBearingDeg = (lat1, lon1, lat2, lon2) => {
-      const toRad = (x) => (x * Math.PI) / 180;
-      const toDeg = (x) => (x * 180) / Math.PI;
-
-      const φ1 = toRad(lat1);
-      const φ2 = toRad(lat2);
-      const Δλ = toRad(lon2 - lon1);
-
-      const y = Math.sin(Δλ) * Math.cos(φ2);
-      const x =
-        Math.cos(φ1) * Math.sin(φ2) -
-        Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-
-      const θ = Math.atan2(y, x);
-      return (toDeg(θ) + 360) % 360;
-    };
-
     // ✅ Авто-режим (как было у тебя)
     const q = question.toLowerCase();
     const isTest =
@@ -70,7 +38,114 @@ module.exports = async (req, res) => {
     if (isTest) mode = "test";
     else if (isTask) mode = "task";
 
-    // ✅ system prompt (усилен: просим tools при расчётах)
+    // ====== 1) “Всегда актуально” — проверка для Казахстана ======
+    // Ловим вопросы “сколько областей/регионов/облыс/облыстар в Казахстане”
+    const isKZRegionsCountQuestion = (() => {
+      const s = q;
+      const hasKazakhstan =
+        s.includes("казахстан") || s.includes("қазақстан") || s.includes("kазақстан") || s.includes("kz") || s.includes("kazakhstan");
+      const hasCount =
+        s.includes("сколько") || s.includes("қанша") || s.includes("how many") || s.includes("number of");
+      const hasRegionWord =
+        s.includes("област") || s.includes("облыс") || s.includes("region") || s.includes("регион") || s.includes("province");
+
+      return hasKazakhstan && hasCount && hasRegionWord;
+    })();
+
+    // SPARQL: берём актуальное значение quantity (P1114) для “region of Kazakhstan” (Q836672)
+    // Берём самое “свежее” по start time (P580); если есть end time (P582), то это старое.
+    async function fetchKZRegionCountFromWikidata() {
+      const endpoint = "https://query.wikidata.org/sparql";
+      const sparql = `
+SELECT ?qty ?start ?end WHERE {
+  wd:Q836672 p:P1114 ?st .
+  ?st ps:P1114 ?qty .
+  OPTIONAL { ?st pq:P580 ?start . }
+  OPTIONAL { ?st pq:P582 ?end . }
+}
+ORDER BY DESC(?start)
+LIMIT 10
+`.trim();
+
+      const url = `${endpoint}?format=json&query=${encodeURIComponent(sparql)}`;
+
+      const r = await fetch(url, {
+        headers: {
+          // важный заголовок для Wikidata Query Service
+          "Accept": "application/sparql+json",
+          "User-Agent": "geo-ai-demo/1.0 (Vercel serverless; contact: none)"
+        }
+      });
+
+      if (!r.ok) throw new Error(`Wikidata SPARQL error: ${r.status}`);
+
+      const data = await r.json();
+      const rows = data?.results?.bindings || [];
+
+      // Выбираем актуальную строку: без end или end в будущем
+      const now = new Date();
+      for (const row of rows) {
+        const qtyStr = row?.qty?.value;
+        const endStr = row?.end?.value;
+
+        const qty = qtyStr ? Number(qtyStr) : NaN;
+        if (!Number.isFinite(qty)) continue;
+
+        if (!endStr) {
+          return { qty, source: "Wikidata(Q836672,P1114)", checkedAt: new Date().toISOString() };
+        }
+
+        // если вдруг end указан, но позже текущей даты — считаем актуальным
+        const endDate = new Date(endStr);
+        if (Number.isFinite(endDate.getTime()) && endDate > now) {
+          return { qty, source: "Wikidata(Q836672,P1114)", checkedAt: new Date().toISOString() };
+        }
+      }
+
+      // fallback: первая валидная
+      const first = rows[0]?.qty?.value;
+      const qty = first ? Number(first) : NaN;
+      if (Number.isFinite(qty)) {
+        return { qty, source: "Wikidata(Q836672,P1114)", checkedAt: new Date().toISOString() };
+      }
+
+      throw new Error("Wikidata returned no qty");
+    }
+
+    // Если это вопрос про число областей РК — сначала достаём факт
+    let verifiedFactsText = "";
+    let verifiedMode = null;
+
+    if (isKZRegionsCountQuestion) {
+      try {
+        const info = await fetchKZRegionCountFromWikidata();
+
+        if (language === "ru") {
+          verifiedFactsText =
+            `ПРОВЕРЕННЫЙ ФАКТ (обновляется из Wikidata): в Казахстане сейчас ${info.qty} областей (регионов). ` +
+            `Проверено: ${info.checkedAt}. Источник: ${info.source}.`;
+        } else if (language === "en") {
+          verifiedFactsText =
+            `VERIFIED FACT (from Wikidata): Kazakhstan currently has ${info.qty} regions (oblast-level). ` +
+            `Checked: ${info.checkedAt}. Source: ${info.source}.`;
+        } else {
+          // kk
+          verifiedFactsText =
+            `ТЕКСЕРІЛГЕН ДЕРЕК (Wikidata): Қазақстанда қазір ${info.qty} облыс бар. ` +
+            `Тексерілген уақыты: ${info.checkedAt}. Дереккөз: ${info.source}.`;
+        }
+
+        // Можно вообще ответить сразу без модели (самый надежный вариант):
+        // Но оставим “красивое объяснение” через модель, дав ей факт железобетонно.
+        verifiedMode = "verified_fact";
+      } catch (e) {
+        // если проверка сломалась — не падаем, просто продолжим через модель
+        verifiedFactsText = "";
+        verifiedMode = "verification_failed";
+      }
+    }
+
+    // ====== 2) System prompt (как у тебя, + правило “не врать про актуальные числа”) ======
     let systemPrompt = "";
 
     if (mode === "chat") {
@@ -80,7 +155,7 @@ module.exports = async (req, res) => {
 - География сұрағына нақты, түсінікті жауап бер.
 - Қазақстан географиясына басымдық бер.
 - Егер сұрақ анық емес болса — 1 нақтылау сұрағын қой.
-- Егер есеп/координата/азимут/қашықтық сияқты дәл есеп керек болса — есепті "tools" арқылы жаса, жорамалдама.
+- Егер "ПРОВЕРЕННЫЙ ФАКТ / ТЕКСЕРІЛГЕН ДЕРЕК / VERIFIED FACT" берілсе — соны дәл қолдан, басқа сан ойлап таппа.
 Жауап форматы:
 1) Қысқа жауап
 2) Түсіндіру (қадамдап)
@@ -103,53 +178,26 @@ module.exports = async (req, res) => {
 - Тапсырма мәтіні
 - Шешімі (қадамдап)
 - Бағалау критерийі/дескриптор (2-4 пункт)
-Егер тапсырмада есептеу/координата/азимут/қашықтық керек болса — "tools" арқылы дәл есепте.
+Егер "ПРОВЕРЕННЫЙ ФАКТ / ТЕКСЕРІЛГЕН ДЕРЕК / VERIFIED FACT" берілсе — соны дәл қолдан.
 Тіл: ${language}.
 `.trim();
     }
 
-    // ====== TOOLS (function calling) ======
-    const tools = [
-      {
-        type: "function",
-        function: {
-          name: "geo_distance",
-          description: "Вычисляет расстояние между двумя точками по широте/долготе в километрах.",
-          parameters: {
-            type: "object",
-            properties: {
-              lat1: { type: "number" },
-              lon1: { type: "number" },
-              lat2: { type: "number" },
-              lon2: { type: "number" }
-            },
-            required: ["lat1", "lon1", "lat2", "lon2"]
-          }
-        }
-      },
-      {
-        type: "function",
-        function: {
-          name: "geo_bearing",
-          description: "Вычисляет азимут (начальный курс) от точки 1 к точке 2 в градусах 0..360.",
-          parameters: {
-            type: "object",
-            properties: {
-              lat1: { type: "number" },
-              lon1: { type: "number" },
-              lat2: { type: "number" },
-              lon2: { type: "number" }
-            },
-            required: ["lat1", "lon1", "lat2", "lon2"]
-          }
-        }
-      }
-    ];
-
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-    // ====== 1) First call to OpenAI (can request tools) ======
-    const r1 = await fetch("https://api.openai.com/v1/chat/completions", {
+    // ====== 3) OpenAI request ======
+    // Если у нас есть verifiedFactsText — добавляем как отдельное сообщение перед вопросом
+    const messages = [
+      { role: "system", content: systemPrompt }
+    ];
+
+    if (verifiedFactsText) {
+      messages.push({ role: "system", content: verifiedFactsText });
+    }
+
+    messages.push({ role: "user", content: question });
+
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -157,119 +205,40 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: question }
-        ],
-        tools,
-        tool_choice: "auto",
+        messages,
         max_tokens: 900,
         temperature: 0.6
       })
     });
 
-    const raw1 = await r1.text();
-    let data1;
+    const raw = await r.text();
+    let data;
     try {
-      data1 = JSON.parse(raw1);
+      data = JSON.parse(raw);
     } catch {
       return res.status(502).json({
-        error: `OpenAI JSON емес жауап қайтарды (status ${r1.status})`,
-        hint: raw1.slice(0, 200)
+        error: `OpenAI JSON емес жауап қайтарды (status ${r.status})`,
+        hint: raw.slice(0, 200)
       });
     }
 
-    if (!r1.ok) {
-      const msg = data1?.error?.message || "OpenAI API error";
-      return res.status(r1.status).json({
+    if (!r.ok) {
+      const msg = data?.error?.message || "OpenAI API error";
+      return res.status(r.status).json({
         error: msg,
-        hint: r1.status === 429
+        hint: r.status === 429
           ? "Лимит/квота таусылған (429). OpenAI Billing/Usage тексер."
           : "OpenAI error. Кілт/модель дұрыс па тексер."
       });
     }
 
-    const msg1 = data1?.choices?.[0]?.message;
-    if (!msg1) return res.status(200).json({ answer: "Жауап табылмады", mode });
-
-    // If no tool calls => return answer
-    if (!msg1.tool_calls || msg1.tool_calls.length === 0) {
-      const answer = msg1?.content?.trim() || "Жауап табылмады";
-      return res.status(200).json({ answer, mode });
-    }
-
-    // ====== 2) Execute tool calls on server ======
-    const toolMessages = [];
-    for (const call of msg1.tool_calls) {
-      let args = {};
-      try {
-        args = JSON.parse(call.function.arguments || "{}");
-      } catch {
-        args = {};
-      }
-
-      if (call.function.name === "geo_distance") {
-        const km = haversineKm(args.lat1, args.lon1, args.lat2, args.lon2);
-        toolMessages.push({
-          role: "tool",
-          tool_call_id: call.id,
-          content: JSON.stringify({ km: Number(km.toFixed(3)) })
-        });
-      }
-
-      if (call.function.name === "geo_bearing") {
-        const bearing = initialBearingDeg(args.lat1, args.lon1, args.lat2, args.lon2);
-        toolMessages.push({
-          role: "tool",
-          tool_call_id: call.id,
-          content: JSON.stringify({ bearing_deg: Number(bearing.toFixed(2)) })
-        });
-      }
-    }
-
-    // ====== 3) Second call: model gets tool results and answers ======
-    const r2 = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: question },
-          msg1,
-          ...toolMessages
-        ],
-        max_tokens: 900,
-        temperature: 0.6
-      })
+    const answer = data?.choices?.[0]?.message?.content?.trim() || "Жауап табылмады";
+    return res.status(200).json({
+      answer,
+      mode,
+      verification: verifiedMode,          // "verified_fact" | "verification_failed" | null
+      verifiedFactsUsed: Boolean(verifiedFactsText)
     });
-
-    const raw2 = await r2.text();
-    let data2;
-    try {
-      data2 = JSON.parse(raw2);
-    } catch {
-      return res.status(502).json({
-        error: `OpenAI JSON емес жауап қайтарды (status ${r2.status})`,
-        hint: raw2.slice(0, 200)
-      });
-    }
-
-    if (!r2.ok) {
-      const msg = data2?.error?.message || "OpenAI API error";
-      return res.status(r2.status).json({
-        error: msg,
-        hint: r2.status === 429
-          ? "Лимит/квота таусылған (429). OpenAI Billing/Usage тексер."
-          : "OpenAI error. Кілт/модель дұрыс па тексер."
-      });
-    }
-
-    const answer = data2?.choices?.[0]?.message?.content?.trim() || "Жауап табылмады";
-    return res.status(200).json({ answer, mode });
 
   } catch (e) {
     return res.status(500).json({ error: "Function crashed", hint: String(e?.message || e) });
