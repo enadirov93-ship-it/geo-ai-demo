@@ -1,141 +1,190 @@
-<!doctype html>
-<html lang="ru">
+<!DOCTYPE html>
+<html lang="kk">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>AI-TANYM — География AI помощник учителя</title>
-  <link rel="icon" href="/favicon.ico" />
-  <link rel="stylesheet" href="./styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-TANYM — Geography Teacher Assistant</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="bg" aria-hidden="true">
-    <div class="orb o1"></div>
-    <div class="orb o2"></div>
-    <div class="grid"></div>
+
+  <div class="bg"></div>
+
+  <!-- TOP BAR -->
+  <div class="mini-top">
+    <div class="mini-left">
+      <span class="dot"></span>
+      <span class="sep">|</span>
+      <a href="#" class="mini-link" onclick="openPolicy(event)" data-i18n="privacy_link">Құпиялық саясаты</a>
+    </div>
+
+    <div class="mini-right">
+      <button class="mini-search" onclick="scrollToSearch()" data-i18n="go_ai">🔎 AI көмекшіге өту</button>
+
+      <!-- Language switcher (separate) -->
+      <div class="lang-switch">
+        <button class="lang-btn" id="langBtn" type="button" aria-haspopup="true" aria-expanded="false">
+          🌐 <span id="langBtnLabel">Қазақша</span> ▾
+        </button>
+
+        <div class="lang-menu" id="langMenu" role="menu" aria-hidden="true">
+          <button class="lang-item" type="button" data-lang="kk" role="menuitem">Қазақша</button>
+          <button class="lang-item" type="button" data-lang="ru" role="menuitem">Русский</button>
+          <button class="lang-item" type="button" data-lang="en" role="menuitem">English</button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">AI</div>
-      <div class="brand-text">
-        <div class="brand-title">AI-TANYM</div>
-        <div class="brand-subtitle" data-i18n="subtitle">География AI помощник учителя</div>
+  <header class="header">
+    <div class="title">
+      <span class="moon">🌍</span>
+      <div class="title-text">
+        <h1>AI-TANYM</h1>
+        <div class="title-sub" data-i18n="subtitle">
+          География мұғаліміне арналған AI көмекші • Карта • PISA • Диаграмма • Тест • Сабақ жоспары
+        </div>
       </div>
     </div>
 
-    <div class="lang">
-      <button class="lang-btn" id="langBtn" type="button" aria-haspopup="true" aria-expanded="false">
-        <span id="langLabel">RU</span>
-        <span class="chev">▾</span>
-      </button>
-      <div class="lang-menu" id="langMenu" role="menu" aria-label="Language">
-        <button type="button" role="menuitem" data-lang="kk">Қазақша</button>
-        <button type="button" role="menuitem" data-lang="ru">Русский</button>
-        <button type="button" role="menuitem" data-lang="en">English</button>
-      </div>
+    <div class="pills">
+      <div class="pill light">👤 KUANYSH TASHEMENOV</div>
+      <div class="pill dark" data-i18n="school_name">Д.Қонаев атындағы BINOM SCHOOL мектеп-лицейі</div>
     </div>
   </header>
 
-  <main class="page">
-    <!-- Блоки страницы можешь оставить как есть. Я добавляю только “классный” AI-блок ниже -->
-    <section class="ai card" id="aiBlock">
-      <div class="ai-head">
-        <div class="ai-title">
-          <div class="badge" data-i18n="badge">AI</div>
-          <div>
-            <div class="h2" data-i18n="aiTitle">Чат-помощник</div>
-            <div class="muted" data-i18n="aiHint">Пиши вопрос по географии — я помогу учителю быстро и по-школьному.</div>
+  <main class="wrap">
+
+    <section class="card about">
+      <div class="card-head">
+        <span class="icon">🧑‍🏫</span>
+        <h2 data-i18n="about_title">Платформа қысқаша</h2>
+      </div>
+
+      <p data-i18n="about_text">
+        AI-TANYM — география мұғаліміне арналған көмекші: тақырыпты түсіндіру, PISA форматындағы тапсырма құрастыру,
+        картамен жұмыс, диаграмма/кесте талдау, тест және бағалау критерийлері.
+      </p>
+    </section>
+
+    <section class="section-head">
+      <span class="pin">⭐</span>
+      <h2 data-i18n="quick_title">Жылдам мүмкіндіктер</h2>
+    </section>
+
+    <section class="grid">
+      <button class="tile" onclick="useTemplate('pisa_map')"><div class="num">01</div><div class="txt" data-i18n="tile_1">PISA + карта тапсырма</div></button>
+      <button class="tile" onclick="useTemplate('diagram')"><div class="num">02</div><div class="txt" data-i18n="tile_2">Диаграмма/кесте талдау</div></button>
+      <button class="tile" onclick="useTemplate('lesson_45')"><div class="num">03</div><div class="txt" data-i18n="tile_3">45 минут сабақ жоспары</div></button>
+      <button class="tile" onclick="useTemplate('test_gen')"><div class="num">04</div><div class="txt" data-i18n="tile_4">Тест + жауап кілті</div></button>
+      <button class="tile" onclick="useTemplate('map_skill')"><div class="num">05</div><div class="txt" data-i18n="tile_5">Картамен жұмыс дағдысы</div></button>
+      <button class="tile" onclick="useTemplate('rubric')"><div class="num">06</div><div class="txt" data-i18n="tile_6">Критерий + дескриптор</div></button>
+      <button class="tile" onclick="useTemplate('coords')"><div class="num">07</div><div class="txt" data-i18n="tile_7">Координата/қашықтық/азимут</div></button>
+      <button class="tile" onclick="useTemplate('check_solution')"><div class="num">08</div><div class="txt" data-i18n="tile_8">Оқушы жауабын тексеру</div></button>
+    </section>
+
+    <!-- AI SECTION -->
+    <section id="ai-search" class="card search search-hero">
+      <div class="search-hero__top">
+        <div>
+          <div class="badge">AI • GEOGRAPHY • TEACHER ASSISTANT</div>
+          <h3 class="search-hero__title" data-i18n="ai_title">География мұғаліміне AI көмекші</h3>
+          <div class="search-hero__desc" data-i18n="ai_desc">
+            Режим таңда да сұрағыңды жаз: түсіндіру / тапсырма / тест / тексеру / сабақ жоспары.
+            Географияға үлкен акцент: Қазақстан + әлем географиясы.
+          </div>
+        </div>
+      </div>
+
+      <div class="teacher-bar">
+        <div class="mode-pills" id="modePills">
+          <button class="mode-pill active" data-mode="chat" data-i18n="mode_chat">💬 Жалпы</button>
+          <button class="mode-pill" data-mode="explain" data-i18n="mode_explain">📘 Түсіндіру</button>
+          <button class="mode-pill" data-mode="task" data-i18n="mode_task">🧩 Тапсырма</button>
+          <button class="mode-pill" data-mode="test" data-i18n="mode_test">📝 Тест</button>
+          <button class="mode-pill" data-mode="check" data-i18n="mode_check">✅ Тексеру</button>
+          <button class="mode-pill" data-mode="lesson" data-i18n="mode_lesson">🧑‍🏫 Сабақ жоспары</button>
+        </div>
+
+        <div class="teacher-actions">
+          <button class="tbtn ghost" id="btnClear" type="button" data-i18n="btn_clear">🧹 Тазарту</button>
+          <button class="tbtn ghost" id="btnCopyLast" type="button" data-i18n="btn_copy_last">📋 Соңғысын көшіру</button>
+          <button class="tbtn" id="btnDownload" type="button" data-i18n="btn_download">⬇️ Жүктеу (.txt)</button>
+        </div>
+      </div>
+
+      <div class="chips">
+        <button class="chip" onclick="useTemplate('teacher_request')" data-i18n="chip_teacher_req">🧾 Мұғалім сұранысы</button>
+        <button class="chip" onclick="useTemplate('pisa_map')" data-i18n="chip_pisa_map">🧭 PISA + карта</button>
+        <button class="chip" onclick="useTemplate('diagram')" data-i18n="chip_diagram">📊 Диаграмма</button>
+        <button class="chip" onclick="useTemplate('rubric')" data-i18n="chip_rubric">✅ Дескриптор</button>
+        <button class="chip" onclick="useTemplate('coords')" data-i18n="chip_coords">📍 Координата</button>
+      </div>
+
+      <div class="ai-chat">
+        <div class="ai-chat__head">
+          <div class="ai-chat__status">
+            <span class="dot-live"></span>
+            <span id="modeLabel" data-i18n="mode_label">Режим: 💬 Жалпы</span>
+          </div>
+          <div class="ai-chat__mini">
+            <span class="mini-tip" data-i18n="tip_enter">Enter — жіберу • Shift+Enter — жаңа жол</span>
           </div>
         </div>
 
-        <div class="ai-actions">
-          <button class="btn btn-ghost" id="copyLastBtn" type="button" data-i18n="copyLast">Копировать последнее</button>
-          <button class="btn btn-ghost" id="downloadBtn" type="button" data-i18n="downloadTxt">Скачать .txt</button>
-          <button class="btn btn-danger" id="clearChatBtn" type="button" data-i18n="clearChat">Очистить чат</button>
-        </div>
-      </div>
+        <div id="response" class="ai-chat__body"></div>
 
-      <!-- ПАМЯТЬ / КОНТЕКСТ -->
-      <div class="memory">
-        <div class="memory-top">
-          <div class="memory-title" data-i18n="memoryTitle">Память для ИИ</div>
-          <div class="memory-sub" data-i18n="memorySub">Сохраняется и добавляется к каждому вопросу. Сброс — кнопкой “Очистить чат”.</div>
-        </div>
-
-        <textarea
-          id="memoryInput"
-          class="memory-input"
-          rows="2"
-          data-i18n-placeholder="memoryPlaceholder"
-          placeholder="Например: Я учитель 8 класса. Отвечай кратко, по школьному, с примерами Казахстана."
-        ></textarea>
-
-        <div class="memory-actions">
-          <button class="btn btn-soft" id="saveMemoryBtn" type="button" data-i18n="saveMemory">Сохранить память</button>
-          <button class="btn btn-ghost" id="clearMemoryBtn" type="button" data-i18n="clearMemory">Очистить память</button>
-        </div>
-      </div>
-
-      <!-- РЕЖИМЫ УЧИТЕЛЯ -->
-      <div class="modes">
-        <div class="modes-title" data-i18n="modesTitle">Режим</div>
-        <div class="mode-row" role="tablist" aria-label="Modes">
-          <button class="chip is-active" data-mode="chat" type="button" role="tab">chat</button>
-          <button class="chip" data-mode="explain" type="button" role="tab">explain</button>
-          <button class="chip" data-mode="task" type="button" role="tab">task</button>
-          <button class="chip" data-mode="test" type="button" role="tab">test</button>
-          <button class="chip" data-mode="check" type="button" role="tab">check</button>
-          <button class="chip" data-mode="lesson" type="button" role="tab">lesson</button>
-        </div>
-      </div>
-
-      <!-- ШАБЛОНЫ (оставил компактно; очистка чата теперь отдельно сверху) -->
-      <div class="templates">
-        <div class="templates-title" data-i18n="templatesTitle">Шаблоны для учителя</div>
-        <div class="template-grid">
-          <button class="tpl" type="button" data-template="pisaMap" data-i18n="tplPisa">PISA + карта</button>
-          <button class="tpl" type="button" data-template="diagram" data-i18n="tplDiagram">Диаграмма</button>
-          <button class="tpl" type="button" data-template="criteria" data-i18n="tplCriteria">Критерии</button>
-          <button class="tpl" type="button" data-template="coords" data-i18n="tplCoords">Координаты</button>
-          <button class="tpl" type="button" data-template="lesson15" data-i18n="tpl15">План 15 мин</button>
-          <button class="tpl" type="button" data-template="lesson45" data-i18n="tpl45">План 45 мин</button>
-        </div>
-      </div>
-
-      <!-- ЧАТ -->
-      <div class="chat" id="chat">
-        <div class="chat-scroll" id="chatScroll" aria-live="polite"></div>
-
-        <!-- ВВОД (липнет снизу, удобно на телефоне) -->
-        <div class="composer">
-          <div class="composer-inner">
+        <div class="ai-chat__bar">
+          <div class="ai-input-wrap">
             <textarea
-              id="questionInput"
-              class="question"
+              id="question"
+              class="ai-input"
               rows="1"
-              data-i18n-placeholder="askPlaceholder"
-              placeholder="Напиши вопрос по географии…"
+              data-i18n-placeholder="input_placeholder"
+              placeholder="Сынып, тақырып, форматты жаз..."
             ></textarea>
-            <button class="send" id="sendBtn" type="button" aria-label="Send">
-              <span class="send-icon">➤</span>
-              <span class="send-text" data-i18n="send">Отправить</span>
-            </button>
+
+            <div class="ai-tools">
+              <button class="iconbtn" type="button" title="Templates" onclick="toggleTemplatePanel()">✨</button>
+              <button class="iconbtn" type="button" title="Copy input" onclick="copyInput()">📋</button>
+            </div>
           </div>
-          <div class="composer-help">
-            <span data-i18n="enterHint">Enter — отправить, Shift+Enter — перенос</span>
-            <span class="status" id="status"></span>
+
+          <button class="btn btn-big ai-send" onclick="ask()" data-i18n="btn_send">Жіберу</button>
+        </div>
+
+        <div class="template-panel" id="templatePanel" aria-hidden="true">
+          <div class="template-title" data-i18n="tpl_title">Дайын шаблондар (мұғалімге)</div>
+          <div class="template-grid">
+            <button class="template" onclick="useTemplate('lesson_45')" data-i18n="tpl_45">🧑‍🏫 45 мин сабақ жоспары</button>
+            <button class="template" onclick="useTemplate('lesson_15')" data-i18n="tpl_15">⏱️ 15 мин мини-сабақ</button>
+            <button class="template" onclick="useTemplate('task_pisa_data')" data-i18n="tpl_pisa_data">🧩 PISA (дерек/кесте)</button>
+            <button class="template" onclick="useTemplate('map_skill')" data-i18n="tpl_map_skill">🗺️ Карта дағдысы</button>
+            <button class="template" onclick="useTemplate('formative')" data-i18n="tpl_formative">🟦 ҚБ тапсырмасы</button>
+            <button class="template" onclick="useTemplate('summative')" data-i18n="tpl_summative">🟪 ЖБ тапсырмасы</button>
+            <button class="template" onclick="useTemplate('test_gen')" data-i18n="tpl_test">📝 Тест генерация</button>
+            <button class="template" onclick="useTemplate('check_solution')" data-i18n="tpl_check">✅ Шешімді тексеру</button>
           </div>
+        </div>
+
+        <div class="ai-hint">
+          <span data-i18n="hint">
+            Кеңес: нақты болсын — сынып, тақырып, формат, оқу мақсаты жаз.
+          </span>
         </div>
       </div>
     </section>
 
-    <footer class="footer">
-      <span>© <span id="year"></span> AI-TANYM</span>
-      <span class="dot">•</span>
-      <span class="muted" data-i18n="footerNote">Сделано для учителей географии</span>
+    <footer class="footer" data-i18n="footer">
+      © 2026 AI-TANYM | Географияны білу — әлемді тану
     </footer>
   </main>
 
-  <script src="./app.js"></script>
+  <div class="sticky-hint" id="stickyHint">
+    <span data-i18n="sticky_text">💬 География AI көмекші дайын — төменге өтіңіз</span>
+    <button class="hint-btn" onclick="scrollToSearch()" data-i18n="sticky_btn">Өту</button>
+  </div>
+
+  <script src="./script.js"></script>
 </body>
 </html>
